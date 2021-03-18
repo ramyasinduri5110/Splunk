@@ -1,0 +1,35 @@
+Regex vs Regex Vs Erex
+
+Regex removes the results that donot match the specified regular expression it will not extract any fields. rex is used for extarcting fields, using regular 
+expressions. erex command is used to extract the data when you don't know how to use the regular expressions .
+
+When using the rex command in sed mode, you have two options: replace (s) or character substitution (y). 
+the syntax for using sed to replace (s) text in your data is: s is a pcre regular expression, which can include capturing groups. is a string to replace the regex match.
+
+
+
+#############Sample splunk search query with regular expressions ##################
+
+
+*****To extarct an error message from failed logs******
+
+index=os host=* source="/var/log/puppetlabs/puppetserver/puppetserver.log"  sourcetype="puppet-server" 
+| rex field=_raw "(?<status>[A-Z]+)\s+\[(?<x1>\S+)\]\s+\[(?<x2>\S+)\]\s+(?<description>\S+\s\S+\s\S+\s\S+)" 
+| search status!="INFO" AND status!="WARN" 
+| timechart count by status
+
+******writing alerts using regular expressions********
+
+index=ssn sourcetype=app-* "Caused by: com.ssn.jfc.dal.ConnectionCacheExhaustedException" | 
+rex field=sourcetype "(app|server)-(?<Application>[\w]+)"  | 
+rex field=_raw "Caused by: com.ssn.jfc.dal.ConnectionCacheExhaustedException: (?<msg>.*?)(\n)" |
+eval summary="CRITICAL: Task " + msg |
+eval eventtype="App::All::DB Connection Pool Exhausted -- " + Application |
+stats count by host ssnservice eventtype summary | fields - count
+
+
+index=network sourcetype = netops-3 UTC: %ETHPORT-3-IF_DOWN_ERROR_DISABLED:
+|rex field=_raw "UTC:(?<alert_description>\s%\w+-\d-\w+_\w+)" 
+| eval summary="CRITICAL: Task" +alert_description
+|eval eventtype="App::All::ETHPORT error disabled --" 
+|table _time host ssnservice  eventtype summary
